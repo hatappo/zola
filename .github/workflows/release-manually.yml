@@ -1,0 +1,69 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "ref"
+        required: false
+        default: ""
+
+
+jobs:
+  build:
+    name: Release binary
+    strategy:
+      matrix:
+        include:
+          # - os: ubuntu-latest
+          #   target: x86_64-pc-windows-gnu
+          #   artifact_name: zola.exe
+          #   asset_name: x86_64-pc-windows-gnu.exe
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact_name: zola
+            asset_name: x86_64-apple-darwin
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact_name: zola
+            asset_name: x86_64-unknown-linux-gnu
+
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      
+      - run: git checkout ${{ github.event.inputs.ref }}
+        if: ${{ github.event.inputs.ref != '' }}
+
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Cross build with ja and zh search features
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: true 
+          command: build
+          args: --release --target ${{ matrix.target }} --features search/indexing-ja --features search/indexing-zh 
+
+      - name: Make tarball
+        run: |
+          cd target/${{ matrix.target }}/release/
+          tar -zcvf ${{ matrix.artifact_name }}.tar.gz ${{ matrix.artifact_name }}
+
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@2.2.1
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: target/${{ matrix.target }}/release/${{ matrix.artifact_name }}.tar.gz
+          asset_name: "zola-${{ github.event.inputs.ref }}-${{ matrix.asset_name }}.with-ja-and-zh.tar.gz"
+          tag: ${{ github.event.inputs.ref }}
+          body: "This repository and release is not official one. These binaries are built with the Japanese and Chinese search features enabled. Therefore, the binaries are very large. For details on the build procedure, see the GitHub Actions workflow file in the repository."
+          overwrite: true
