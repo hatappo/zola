@@ -49,7 +49,7 @@ jobs:
       - name: Cross build with ja and zh search features
         uses: actions-rs/cargo@v1
         with:
-          use-cross: true 
+          use-cross: false 
           command: build
           args: --release --target ${{ matrix.target }} --features search/indexing-ja --features search/indexing-zh 
 
