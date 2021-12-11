@@ -43,13 +43,12 @@ jobs:
       - name: Install stable toolchain
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: 1.51.0
+          toolchain: stable
           override: true
 
       - name: Cross build with ja and zh search features
         uses: actions-rs/cargo@v1
         with:
-          use-cross: false 
           command: build
           args: --release --target ${{ matrix.target }} --features search/indexing-ja --features search/indexing-zh 
 
